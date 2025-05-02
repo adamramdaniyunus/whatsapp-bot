@@ -1,0 +1,68 @@
+const fs = require('fs');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+async function saveMediaToFile(media, filePath) {
+    const buffer = Buffer.from(media.data, 'base64');
+    fs.writeFileSync(filePath, buffer);
+}
+
+function fileToGenerativePart(filePath, mimeType) {
+    const data = fs.readFileSync(filePath);
+    return {
+        inlineData: {
+            data: data.toString('base64'),
+            mimeType,
+        },
+    };
+}
+
+const systemPrompt = `
+Kamu adalah asisten AI untuk mengidentifikasi gambar yang berkaitan dengan matematika.
+
+Tugas utama kamu adalah:
+1. Menganalisis gambar yang diberikan.
+2. Menentukan apakah gambar tersebut merupakan soal matematika, rumus, atau materi pembelajaran matematika.
+3. Jika ya, berikan penjelasan singkat mengenai isi gambar (misalnya: jenis soal, topik, rumus yang digunakan).
+4. Jika ada lebih dari satu rumus, sebutkan hanya satu rumus utama yang tampak dominan.
+5. Jika gambar tidak berkaitan dengan matematika, jawab dengan singkat bahwa gambar tidak relevan.
+
+Balaslah dengan ringkas dan jelas, tanpa tambahan penjelasan di luar konteks gambar.
+
+Contoh format jawaban:
+- "Ini adalah soal tentang persamaan kuadrat. Rumus: ax² + bx + c = 0."
+- "Gambar ini berisi rumus luas segitiga. Rumus: L = ½ × alas × tinggi."
+- "Gambar ini tidak berkaitan dengan materi matematika."
+`;
+
+async function handleImage(media, prompt) {
+    const filePath = "./temp_image.jpg";
+    await saveMediaToFile(media, filePath);
+
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const imagePart = fileToGenerativePart(filePath, media.mimetype);
+
+    const result = await model.generateContent({
+        contents: [
+            {
+                parts: [
+                    { text: systemPrompt },
+                    imagePart,
+                ],
+            },
+        ],
+    });
+
+    const response = await result.response;
+    fs.unlinkSync(filePath);
+    const imageText = await response.text();
+
+    const promptMedia = `
+        Informasi dari Gambar: ${imageText}.
+        Input Pengguna: ${prompt}
+    `;
+
+    return promptMedia;
+}
+module.exports = handleImage
