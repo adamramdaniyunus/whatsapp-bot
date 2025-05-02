@@ -25,7 +25,22 @@ client.on('message_create', async msg => {
     if (msg.fromMe) {
         // when message start with !ai send message to model AI
         // after AI give a response send back to messangger
-        if (msg.body.startsWith("!ai")) {
+
+        if (msg.hasMedia && msg.body.startsWith("!ai")) {
+            const caption = msg.body || ''; // jika kosong, beri string kosong agar aman
+
+            if (caption.startsWith("!ai")) {
+                const media = await msg.downloadMedia();
+                const prompt = caption.slice(5).trim(); // ambil prompt setelah "!ai"
+                const response = await askAI(prompt, msg.to, media);
+                msg.reply(response);
+            }
+
+            return;
+        } 
+        if (msg.body && msg.body.toString().startsWith("!ai")) {
+            console.log(msg.body);
+            
             const prompt = msg.body.slice(5).trim();
             const response = await askAI(prompt, msg.to); // use our number phone
             msg.reply(response);
@@ -34,8 +49,14 @@ client.on('message_create', async msg => {
 });
 
 client.on('message', async (msg) => {
-    if (msg.body.startsWith("!ai ")) {
-        const prompt = msg.body.slice(5).trim();
+    // if (msg.body.startsWith("!ai ")) {
+    //     const prompt = msg.body.slice(5).trim();
+    //     const response = await askAI(prompt, msg.from); // use phone number for userId
+    //     msg.reply(response);
+    // }
+
+    if (msg.from === '6285777615303@c.us') {
+        const prompt = msg.body
         const response = await askAI(prompt, msg.from); // use phone number for userId
         msg.reply(response);
     }
