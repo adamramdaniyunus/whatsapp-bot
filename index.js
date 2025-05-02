@@ -49,16 +49,18 @@ client.on('message_create', async msg => {
 });
 
 client.on('message', async (msg) => {
-    // if (msg.body.startsWith("!ai ")) {
-    //     const prompt = msg.body.slice(5).trim();
-    //     const response = await askAI(prompt, msg.from); // use phone number for userId
-    //     msg.reply(response);
-    // }
-
     if (msg.from === '6285777615303@c.us') {
-        const prompt = msg.body
-        const response = await askAI(prompt, msg.from); // use phone number for userId
-        msg.reply(response);
+        if(msg.hasMedia) {
+            const media = await msg.downloadMedia();
+            const prompt = msg.body || ''; // jika kosong, beri string kosong agar aman
+            const response = await askAI(prompt, msg.from, media);
+            msg.reply(response);
+        }else {
+            const prompt = msg.body
+            const response = await askAI(prompt, msg.from); // use phone number for userId
+            msg.reply(response);
+        }
+
     }
 });
 
